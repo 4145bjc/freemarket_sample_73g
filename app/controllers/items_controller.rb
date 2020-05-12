@@ -1,4 +1,11 @@
 class ItemsController < ApplicationController
+  require 'payjp'
+
+  before_action :set_find,only:[:show, :destroy, :edit, :update]
+  before_action :move_to_session, only: [:buycheck, :payment, :new]
+  before_action :correct_user, only: [:edit]
+
+
 
   def index
     @items = Item.includes(:images, :category, :seller).order(created_at: :desc) 
@@ -77,7 +84,6 @@ class ItemsController < ApplicationController
     Category.where(ancestry: grandchild_category.ancestry).each do |grandchildren|
     @category_grandchildren_array << grandchildren
     end
-    
   end
 
   def update
@@ -98,4 +104,24 @@ class ItemsController < ApplicationController
     # .merge(seller_id: current_user.id)ユーザーデータできたら修正する, imageできたら追加する
   end
 
+  def set_payment_card
+    if params[:shipping_method] == "card2"
+      card = Card.where(user_id: current_user.id).second
+    else
+      card = Card.where(user_id: current_user.id).first
+    end
+  end
+
+  def set_find
+    @item = Item.find(params[:id])
+  end
+
+  def move_to_session
+    redirect_to new_user_session_path unless user_signed_in?
+  end
+
+  def correct_user
+    @item = Item.find(params[:id])
+    redirect_to root_path if current_user.id != @item.seller_id
+  end
 end
